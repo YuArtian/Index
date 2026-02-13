@@ -13,10 +13,10 @@ class DatabaseSettings(BaseSettings):
 
 
 class EmbeddingSettings(BaseSettings):
-    provider: str = "siliconflow"
+    provider: str = "voyage"
     api_key: str = ""
-    base_url: str = "https://api.siliconflow.cn/v1"
-    model: str = "BAAI/bge-large-zh-v1.5"
+    base_url: str = "https://api.voyageai.com/v1"
+    model: str = "voyage-3.5"
 
 
 class Settings(BaseSettings):

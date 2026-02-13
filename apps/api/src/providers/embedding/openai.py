@@ -18,12 +18,19 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
 
     # Known model dimensions
     MODEL_DIMENSIONS = {
+        # OpenAI
         "text-embedding-3-small": 1536,
         "text-embedding-3-large": 3072,
         "text-embedding-ada-002": 1536,
+        # BGE (SiliconFlow / Ollama)
         "BAAI/bge-large-zh-v1.5": 1024,
         "BAAI/bge-small-zh-v1.5": 512,
         "BAAI/bge-m3": 1024,
+        # Voyage AI
+        "voyage-3.5": 1024,
+        "voyage-3.5-lite": 1024,
+        "voyage-3-large": 1024,
+        "voyage-code-3": 1024,
     }
 
     def __init__(

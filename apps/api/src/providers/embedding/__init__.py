@@ -25,13 +25,21 @@ def create_embedding_provider(
     Returns:
         EmbeddingProvider instance
     """
-    if provider in ("openai", "siliconflow"):
+    if provider in ("openai", "siliconflow", "voyage"):
         if not api_key:
             raise ValueError(f"{provider} requires an API key")
+
+        defaults = {
+            "openai": ("https://api.openai.com/v1", "text-embedding-3-small"),
+            "siliconflow": ("https://api.siliconflow.cn/v1", "BAAI/bge-m3"),
+            "voyage": ("https://api.voyageai.com/v1", "voyage-3.5"),
+        }
+        default_url, default_model = defaults[provider]
+
         return OpenAIEmbeddingProvider(
             api_key=api_key,
-            base_url=base_url or "https://api.openai.com/v1",
-            model=model or "text-embedding-3-small",
+            base_url=base_url or default_url,
+            model=model or default_model,
         )
     elif provider == "local":
         return LocalEmbeddingProvider(model=model or "all-MiniLM-L6-v2")
