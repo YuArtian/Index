@@ -35,3 +35,12 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+
+# Frontend build
+apps/web/dist/
+
+# Docker volumes
+infra/db/data/
