@@ -1,4 +1,4 @@
-import { request } from '@/service/request'
+import { request, BASE_URL } from '@/service/request'
 import { consumeSSE, type SSECallbacks } from '@/service/sse'
 
 interface Conversation {
@@ -39,7 +39,7 @@ export const chatApi = {
     signal?: AbortSignal,
   ) =>
     consumeSSE(
-      'http://localhost:8000/chat',
+      `${BASE_URL}/chat`,
       { conversation_id: conversationId, message },
       callbacks,
       signal,

@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+export const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
 export const request = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: BASE_URL,
 })
 
 request.interceptors.request.use((config) => {

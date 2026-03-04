@@ -38,6 +38,7 @@ Thumbs.db
 
 # Node
 node_modules/
+.pnpm-store/
 
 # Frontend build
 apps/web/dist/

@@ -16,6 +16,15 @@ export const knowledgeApi = {
   indexDocument: (content: string, source: string, fileType = 'text') =>
     request.post('/index', { content, source, file_type: fileType }),
 
+  uploadFile: (file: File, highQuality = false) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('high_quality', String(highQuality))
+    return request.post('/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
   deleteDocument: (docId: string) =>
     request.delete(`/documents/${docId}`),
 

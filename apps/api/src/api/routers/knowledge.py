@@ -1,8 +1,9 @@
 """Knowledge base routes — index, search, documents."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Form, HTTPException, UploadFile, File
 
 from ...services import KnowledgeService, SearchService
+from ...providers.parser.file_extractor import extract_text, get_file_type, SUPPORTED_EXTENSIONS
 from ..models import (
     IndexRequest,
     IndexResponse,
@@ -21,6 +22,7 @@ router = APIRouter(tags=["Knowledge"])
 def init_router(
     knowledge_service: KnowledgeService,
     search_service: SearchService,
+    anthropic_api_key: str = "",
 ) -> APIRouter:
     """Initialize knowledge router with service instances."""
 
@@ -98,5 +100,37 @@ def init_router(
         if not success:
             raise HTTPException(status_code=404, detail=f"Document {doc_id} not found")
         return DeleteResponse(success=True, message=f"Deleted document {doc_id}")
+
+    @router.post("/upload", response_model=IndexResponse)
+    async def upload_file(
+        file: UploadFile = File(...),
+        high_quality: bool = Form(False),
+    ):
+        """Upload a file and index it. Supports: """ + ", ".join(sorted(SUPPORTED_EXTENSIONS))
+        filename = file.filename or "upload"
+        if get_file_type(filename) is None:
+            supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
+            raise HTTPException(
+                status_code=415,
+                detail=f"Unsupported file type. Supported extensions: {supported}",
+            )
+        data = await file.read()
+        try:
+            text, parser_type = await extract_text(filename, data, anthropic_api_key, high_quality)
+        except (ValueError, RuntimeError) as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if not text.strip():
+            raise HTTPException(status_code=422, detail="No text content found in file")
+        result = await knowledge_service.index_document(
+            content=text,
+            source=filename,
+            file_type=parser_type,
+        )
+        return IndexResponse(
+            success=result.success,
+            doc_id=result.doc_id,
+            chunks_count=result.chunks_count,
+            message=result.message,
+        )
 
     return router

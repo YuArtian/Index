@@ -26,7 +26,7 @@ class ProgressService:
         chapters: list[str] | None = None,
     ) -> LearningItem:
         """Create a learning item with optional chapters."""
-        item_id = str(uuid.uuid4())[:8]
+        item_id = str(uuid.uuid4())
         async with self._session_factory() as session:
             item = LearningItem(
                 id=item_id,
@@ -40,7 +40,7 @@ class ProgressService:
             if chapters:
                 for i, ch_title in enumerate(chapters):
                     session.add(Chapter(
-                        id=str(uuid.uuid4())[:8],
+                        id=str(uuid.uuid4()),
                         learning_item_id=item_id,
                         title=ch_title,
                         chapter_index=i,
