@@ -53,8 +53,8 @@ export async function consumeSSE(
             callbacks.onDone?.()
             break
         }
-      } catch {
-        // skip malformed lines
+      } catch (e) {
+        console.warn('SSE: failed to parse line:', line, e)
       }
     }
   }

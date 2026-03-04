@@ -49,7 +49,7 @@ class KnowledgeService:
         file_type: str = "text",
     ) -> IndexResult:
         """Index a document: parse → embed → store in pgvector."""
-        doc_id = str(uuid.uuid4())[:8]
+        doc_id = str(uuid.uuid4())
 
         # Create document record
         async with self._session_factory() as session:

@@ -88,7 +88,7 @@ def create_app() -> FastAPI:
     )
 
     # Routers
-    app.include_router(knowledge.init_router(knowledge_service, search_service))
+    app.include_router(knowledge.init_router(knowledge_service, search_service, settings.anthropic_api_key))
     app.include_router(chat.init_router(chat_service))
     app.include_router(conversations.init_router(chat_service))
     app.include_router(progress.init_router(progress_service))

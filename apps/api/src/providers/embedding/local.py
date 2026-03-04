@@ -2,6 +2,9 @@
 Local embedding provider using sentence-transformers.
 """
 
+import asyncio
+from functools import partial
+
 from .base import EmbeddingProvider
 
 
@@ -49,8 +52,9 @@ class LocalEmbeddingProvider(EmbeddingProvider):
             raise ValueError("Text cannot be empty")
 
         model = self._load_model()
-        embedding = model.encode([text.strip()])[0]
-        return embedding.tolist()
+        loop = asyncio.get_event_loop()
+        embedding = await loop.run_in_executor(None, partial(model.encode, [text.strip()]))
+        return embedding[0].tolist()
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings for multiple texts."""
@@ -62,5 +66,6 @@ class LocalEmbeddingProvider(EmbeddingProvider):
             return []
 
         model = self._load_model()
-        embeddings = model.encode(valid_texts)
+        loop = asyncio.get_event_loop()
+        embeddings = await loop.run_in_executor(None, partial(model.encode, valid_texts))
         return [emb.tolist() for emb in embeddings]

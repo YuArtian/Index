@@ -36,7 +36,7 @@ class ChatService:
         """Stream Claude response as SSE events."""
 
         # Save user message
-        user_msg_id = str(uuid.uuid4())[:8]
+        user_msg_id = str(uuid.uuid4())
         async with self._session_factory() as session:
             session.add(Message(
                 id=user_msg_id,
@@ -55,8 +55,8 @@ class ChatService:
             )
             history = result.scalars().all()
 
-        # Build messages for Claude
-        messages = [{"role": m.role, "content": m.content} for m in history]
+        # Build messages for Claude (keep last 20 to avoid token limit blowup)
+        messages = [{"role": m.role, "content": m.content} for m in history[-20:]]
 
         # Define RAG search tool
         tools = [
@@ -93,8 +93,10 @@ class ChatService:
             input_tokens += response.usage.input_tokens
             output_tokens += response.usage.output_tokens
 
-            # Handle tool use
-            while response.stop_reason == "tool_use":
+            # Handle tool use (cap at 5 iterations to prevent infinite loops)
+            tool_iteration = 0
+            while response.stop_reason == "tool_use" and tool_iteration < 5:
+                tool_iteration += 1
                 tool_use_block = next(
                     b for b in response.content if b.type == "tool_use"
                 )
@@ -146,7 +148,7 @@ class ChatService:
                     yield f"data: {json.dumps({'type': 'text', 'text': block.text}, ensure_ascii=False)}\n\n"
 
             # Save assistant message
-            assistant_msg_id = str(uuid.uuid4())[:8]
+            assistant_msg_id = str(uuid.uuid4())
             async with self._session_factory() as session:
                 session.add(Message(
                     id=assistant_msg_id,
@@ -182,7 +184,7 @@ class ChatService:
 
     async def create_conversation(self) -> Conversation:
         """Create a new conversation."""
-        conv_id = str(uuid.uuid4())[:8]
+        conv_id = str(uuid.uuid4())
         async with self._session_factory() as session:
             conv = Conversation(id=conv_id)
             session.add(conv)
