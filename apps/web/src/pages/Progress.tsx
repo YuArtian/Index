@@ -1,74 +1,54 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, BookOpen, Check } from 'lucide-react'
+import { Plus, Trash2, BookOpen } from 'lucide-react'
 import { progressApi } from '@/api/progress'
 
 interface LearningItem {
   id: string
   title: string
   author: string | null
-  total_chapters: number
-  completed_chapters: number
-  status: string
-}
-
-interface Chapter {
-  id: string
-  title: string
-  chapter_index: number
+  progress: number
   status: string
 }
 
 export default function ProgressPage() {
   const [items, setItems] = useState<LearningItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [selectedItem, setSelectedItem] = useState<LearningItem | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newAuthor, setNewAuthor] = useState('')
-  const [newChapters, setNewChapters] = useState('')
 
   const loadItems = async () => {
     const data = await progressApi.listItems()
     setItems(data.items)
   }
 
-  const loadChapters = async (id: string) => {
-    const data = await progressApi.getItem(id)
-    setChapters(data.chapters)
-  }
-
   useEffect(() => {
     loadItems()
   }, [])
 
-  const handleSelect = (id: string) => {
+  const handleSelect = async (id: string) => {
     setSelectedId(id)
-    loadChapters(id)
+    const data = await progressApi.getItem(id)
+    setSelectedItem(data)
   }
 
   const handleAdd = async () => {
     if (!newTitle.trim()) return
-    const chapList = newChapters
-      .split('\n')
-      .map((c) => c.trim())
-      .filter(Boolean)
     await progressApi.createItem({
       title: newTitle,
       author: newAuthor || undefined,
-      chapters: chapList.length > 0 ? chapList : undefined,
     })
     setNewTitle('')
     setNewAuthor('')
-    setNewChapters('')
     setShowAdd(false)
     await loadItems()
   }
 
-  const handleToggleChapter = async (chapterId: string, currentStatus: string) => {
-    if (!selectedId) return
-    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
-    await progressApi.updateChapter(selectedId, chapterId, { status: newStatus })
-    await loadChapters(selectedId)
+  const handleProgressChange = async (value: number) => {
+    if (!selectedId || !selectedItem) return
+    setSelectedItem({ ...selectedItem, progress: value })
+    await progressApi.updateItem(selectedId, { progress: value })
     await loadItems()
   }
 
@@ -76,7 +56,7 @@ export default function ProgressPage() {
     await progressApi.deleteItem(id)
     if (selectedId === id) {
       setSelectedId(null)
-      setChapters([])
+      setSelectedItem(null)
     }
     await loadItems()
   }
@@ -109,13 +89,6 @@ export default function ProgressPage() {
               placeholder="作者 (可选)"
               className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <textarea
-              value={newChapters}
-              onChange={(e) => setNewChapters(e.target.value)}
-              placeholder="章节列表 (每行一个)"
-              rows={3}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
             <button
               onClick={handleAdd}
               disabled={!newTitle.trim()}
@@ -127,95 +100,82 @@ export default function ProgressPage() {
         )}
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {items.map((item) => {
-            const pct =
-              item.total_chapters > 0
-                ? Math.round((item.completed_chapters / item.total_chapters) * 100)
-                : 0
-            return (
-              <div
-                key={item.id}
-                onClick={() => handleSelect(item.id)}
-                className={`group p-3 rounded-xl cursor-pointer transition-colors ${
-                  selectedId === item.id
-                    ? 'bg-blue-50 border border-blue-200'
-                    : 'hover:bg-gray-50 border border-transparent'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-                    {item.author && (
-                      <p className="text-xs text-gray-500">{item.author}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(item.id)
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              onClick={() => handleSelect(item.id)}
+              className={`group p-3 rounded-xl cursor-pointer transition-colors ${
+                selectedId === item.id
+                  ? 'bg-blue-50 border border-blue-200'
+                  : 'hover:bg-gray-50 border border-transparent'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+                  {item.author && (
+                    <p className="text-xs text-gray-500">{item.author}</p>
+                  )}
                 </div>
-                {item.total_chapters > 0 && (
-                  <div className="mt-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>
-                        {item.completed_chapters}/{item.total_chapters}
-                      </span>
-                      <span>{pct}%</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(item.id)
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
-            )
-          })}
+              <div className="mt-2">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>{item.status === 'completed' ? '已完成' : '阅读中'}</span>
+                  <span>{item.progress}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Chapter detail */}
+      {/* Detail */}
       <div className="flex-1 p-6 overflow-y-auto">
-        {!selectedId ? (
+        {!selectedItem ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
               <BookOpen size={48} className="mx-auto mb-2 opacity-50" />
-              <p>选择一本书查看章节</p>
+              <p>选择一本书查看进度</p>
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {chapters.map((ch) => (
-              <div
-                key={ch.id}
-                onClick={() => handleToggleChapter(ch.id, ch.status)}
-                className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-gray-300 cursor-pointer transition-colors"
-              >
-                <div
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    ch.status === 'completed'
-                      ? 'bg-blue-600 border-blue-600'
-                      : 'border-gray-300'
-                  }`}
-                >
-                  {ch.status === 'completed' && <Check size={14} className="text-white" />}
-                </div>
-                <span
-                  className={`text-sm ${
-                    ch.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'
-                  }`}
-                >
-                  {ch.title}
-                </span>
+          <div className="max-w-md">
+            <h2 className="text-xl font-bold text-gray-900">{selectedItem.title}</h2>
+            {selectedItem.author && (
+              <p className="text-sm text-gray-500 mt-1">{selectedItem.author}</p>
+            )}
+            <div className="mt-8">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                阅读进度: {selectedItem.progress}%
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={selectedItem.progress}
+                onChange={(e) => handleProgressChange(Number(e.target.value))}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>0%</span>
+                <span>100%</span>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>

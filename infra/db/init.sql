@@ -39,26 +39,15 @@ CREATE TABLE learning_items (
     title TEXT NOT NULL,
     author TEXT,
     type TEXT DEFAULT 'book',
-    total_chapters INTEGER DEFAULT 0,
-    completed_chapters INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'reading',
+    progress INTEGER DEFAULT 0,          -- 0-100 百分比
+    status TEXT DEFAULT 'reading',       -- reading / completed
     notes TEXT,
+    document_id TEXT REFERENCES documents(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX ix_learning_items_status ON learning_items (status);
-
-CREATE TABLE chapters (
-    id TEXT PRIMARY KEY,
-    learning_item_id TEXT REFERENCES learning_items(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    chapter_index INTEGER NOT NULL,
-    status TEXT DEFAULT 'pending',
-    completed_at TIMESTAMPTZ,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX ix_chapters_learning_item_id ON chapters (learning_item_id);
+CREATE INDEX ix_learning_items_document_id ON learning_items (document_id);
 
 -- 对话历史
 CREATE TABLE conversations (

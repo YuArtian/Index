@@ -1,7 +1,7 @@
-"""Learning progress routes — CRUD for books/courses and chapters."""
+"""Learning progress routes — CRUD for reading items with percentage progress."""
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ...services import ProgressService
 
@@ -12,17 +12,13 @@ class CreateItemRequest(BaseModel):
     title: str
     author: str | None = None
     type: str = "book"
-    chapters: list[str] | None = None
+    document_id: str | None = None
 
 
 class UpdateItemRequest(BaseModel):
     title: str | None = None
     author: str | None = None
-    status: str | None = None
-    notes: str | None = None
-
-
-class UpdateChapterRequest(BaseModel):
+    progress: int | None = Field(None, ge=0, le=100)
     status: str | None = None
     notes: str | None = None
 
@@ -32,18 +28,14 @@ def init_router(progress_service: ProgressService) -> APIRouter:
 
     @router.post("")
     async def create_item(request: CreateItemRequest):
-        """Add a learning item (book/course)."""
+        """Add a learning item."""
         item = await progress_service.create_item(
             title=request.title,
             author=request.author,
             type=request.type,
-            chapters=request.chapters,
+            document_id=request.document_id,
         )
-        return {
-            "id": item.id,
-            "title": item.title,
-            "total_chapters": item.total_chapters,
-        }
+        return {"id": item.id, "title": item.title}
 
     @router.get("")
     async def list_items(
@@ -59,9 +51,9 @@ def init_router(progress_service: ProgressService) -> APIRouter:
                     "title": i.title,
                     "author": i.author,
                     "type": i.type,
-                    "total_chapters": i.total_chapters,
-                    "completed_chapters": i.completed_chapters,
+                    "progress": i.progress,
                     "status": i.status,
+                    "document_id": i.document_id,
                     "updated_at": i.updated_at.isoformat() if i.updated_at else None,
                 }
                 for i in result["items"]
@@ -73,31 +65,20 @@ def init_router(progress_service: ProgressService) -> APIRouter:
 
     @router.get("/{item_id}")
     async def get_item(item_id: str):
-        """Get a learning item with its chapters."""
-        data = await progress_service.get_item(item_id)
-        if not data:
+        """Get a learning item."""
+        item = await progress_service.get_item(item_id)
+        if not item:
             raise HTTPException(status_code=404, detail="Item not found")
-        item = data["item"]
         return {
             "id": item.id,
             "title": item.title,
             "author": item.author,
             "type": item.type,
-            "total_chapters": item.total_chapters,
-            "completed_chapters": item.completed_chapters,
+            "progress": item.progress,
             "status": item.status,
             "notes": item.notes,
-            "chapters": [
-                {
-                    "id": c.id,
-                    "title": c.title,
-                    "chapter_index": c.chapter_index,
-                    "status": c.status,
-                    "completed_at": c.completed_at.isoformat() if c.completed_at else None,
-                    "notes": c.notes,
-                }
-                for c in data["chapters"]
-            ],
+            "document_id": item.document_id,
+            "updated_at": item.updated_at.isoformat() if item.updated_at else None,
         }
 
     @router.put("/{item_id}")
@@ -107,12 +88,13 @@ def init_router(progress_service: ProgressService) -> APIRouter:
             item_id,
             title=request.title,
             author=request.author,
+            progress=request.progress,
             status=request.status,
             notes=request.notes,
         )
         if not item:
             raise HTTPException(status_code=404, detail="Item not found")
-        return {"id": item.id, "title": item.title, "status": item.status}
+        return {"id": item.id, "title": item.title, "progress": item.progress, "status": item.status}
 
     @router.delete("/{item_id}")
     async def delete_item(item_id: str):
@@ -121,27 +103,5 @@ def init_router(progress_service: ProgressService) -> APIRouter:
         if not success:
             raise HTTPException(status_code=404, detail="Item not found")
         return {"success": True, "message": f"Deleted item {item_id}"}
-
-    @router.put("/{item_id}/chapters/{chapter_id}")
-    async def update_chapter(
-        item_id: str,
-        chapter_id: str,
-        request: UpdateChapterRequest,
-    ):
-        """Update a chapter's status or notes."""
-        chapter = await progress_service.update_chapter(
-            item_id=item_id,
-            chapter_id=chapter_id,
-            status=request.status,
-            notes=request.notes,
-        )
-        if not chapter:
-            raise HTTPException(status_code=404, detail="Chapter not found")
-        return {
-            "id": chapter.id,
-            "title": chapter.title,
-            "status": chapter.status,
-            "completed_at": chapter.completed_at.isoformat() if chapter.completed_at else None,
-        }
 
     return router
