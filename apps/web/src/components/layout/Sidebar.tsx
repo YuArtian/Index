@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { MessageSquare, BookOpen, Library } from 'lucide-react'
+import { MessageSquare, BookOpen, Library, Bookmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
+  { to: '/', icon: BookOpen, label: '书架' },
   { to: '/chat', icon: MessageSquare, label: '对话' },
   { to: '/knowledge', icon: Library, label: '知识库' },
-  { to: '/progress', icon: BookOpen, label: '学习进度' },
+  { to: '/progress', icon: Bookmark, label: '阅读进度' },
 ]
 
 export function Sidebar() {
@@ -20,6 +21,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            end={to === '/'}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',

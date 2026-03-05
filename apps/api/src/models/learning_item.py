@@ -1,4 +1,4 @@
-"""Learning progress models — books/courses and their chapters."""
+"""Learning progress model — tracks reading progress as a percentage."""
 
 from datetime import datetime
 
@@ -17,26 +17,13 @@ class LearningItem(Base):
     title: Mapped[str]
     author: Mapped[str | None]
     type: Mapped[str] = mapped_column(default="book")
-    total_chapters: Mapped[int] = mapped_column(default=0)
-    completed_chapters: Mapped[int] = mapped_column(default=0)
-    status: Mapped[str] = mapped_column(default="reading")
+    progress: Mapped[int] = mapped_column(default=0)  # 0-100 percentage
+    status: Mapped[str] = mapped_column(default="reading")  # reading / completed
     notes: Mapped[str | None]
+    document_id: Mapped[str | None] = mapped_column(
+        ForeignKey("documents.id", ondelete="SET NULL"), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(TZDateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, server_default=func.now(), onupdate=func.now())
 
-    chapters = relationship("Chapter", back_populates="learning_item", cascade="all, delete-orphan")
-
-
-class Chapter(Base):
-    __tablename__ = "chapters"
-
-    id: Mapped[str] = mapped_column(primary_key=True)
-    learning_item_id: Mapped[str] = mapped_column(ForeignKey("learning_items.id", ondelete="CASCADE"), index=True)
-    title: Mapped[str]
-    chapter_index: Mapped[int]
-    status: Mapped[str] = mapped_column(default="pending")
-    completed_at: Mapped[datetime | None] = mapped_column(TZDateTime)
-    notes: Mapped[str | None]
-    created_at: Mapped[datetime] = mapped_column(TZDateTime, server_default=func.now())
-
-    learning_item = relationship("LearningItem", back_populates="chapters")
+    document = relationship("Document", lazy="selectin")

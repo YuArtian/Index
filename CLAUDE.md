@@ -22,7 +22,7 @@ Index/
 │   │   └── src/
 │   │       ├── config.py       # pydantic-settings (.env + __ 分隔符)
 │   │       ├── database.py     # SQLAlchemy async engine
-│   │       ├── models/         # ORM: Document, Chunk, Conversation, Message, LearningItem, Chapter
+│   │       ├── models/         # ORM: Document, Chunk, Conversation, Message, LearningItem
 │   │       ├── api/
 │   │       │   ├── app.py      # 工厂函数 (lifespan + CORS + 服务注入)
 │   │       │   ├── models.py   # Pydantic 请求/响应模型
@@ -39,7 +39,7 @@ Index/
 │           ├── api/            # chat.ts, knowledge.ts, progress.ts
 │           └── service/        # request.ts (Axios), sse.ts (SSE 流式解析)
 │
-├── infra/db/init.sql           # 6 张表 + pgvector 索引
+├── infra/db/init.sql           # 5 张表 + pgvector 索引
 ├── docker-compose.yml
 ├── .env                        # 运行时配置 (不入版本控制)
 └── .env.example                # 配置模板
@@ -76,7 +76,7 @@ CHUNK_OVERLAP=50
 CORS_ORIGINS=["http://localhost:5173"]
 ```
 
-## 数据库 (6 张表)
+## 数据库 (5 张表)
 
 | 表 | 用途 | 关键字段 |
 |---|---|---|
@@ -84,10 +84,9 @@ CORS_ORIGINS=["http://localhost:5173"]
 | chunks | 文档片段 + 向量 | embedding vector(1024), HNSW 索引 |
 | conversations | 对话 | title, timestamps |
 | messages | 消息 | role, content, input/output_tokens |
-| learning_items | 书目 | status (reading/completed), 进度统计 |
-| chapters | 章节 | status (pending/completed) |
+| learning_items | 书目 | progress (0-100%), document_id FK, status (reading/completed) |
 
-## API 端点 (16 个)
+## API 端点 (14 个)
 
 | 路由 | 端点 | 说明 |
 |---|---|---|
@@ -101,12 +100,11 @@ CORS_ORIGINS=["http://localhost:5173"]
 | | `GET /conversations` | 对话列表 |
 | | `GET /conversations/{id}` | 对话详情 |
 | | `DELETE /conversations/{id}` | 删除对话 |
-| progress | `POST /progress` | 添加书目 |
+| progress | `POST /progress` | 添加书目 (可关联 document_id) |
 | | `GET /progress` | 书目列表 |
-| | `GET /progress/{id}` | 书目详情 + 章节 |
-| | `PUT /progress/{id}` | 更新书目 |
+| | `GET /progress/{id}` | 书目详情 |
+| | `PUT /progress/{id}` | 更新书目 (含 progress 百分比) |
 | | `DELETE /progress/{id}` | 删除书目 |
-| | `PUT /progress/{id}/chapters/{ch_id}` | 更新章节状态 |
 
 ## 架构模式
 
