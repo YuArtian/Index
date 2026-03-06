@@ -147,10 +147,30 @@ class KnowledgeService:
             return list(result.scalars().all())
 
     async def delete_document(self, doc_id: str) -> bool:
-        """Delete a document and its chunks (cascade)."""
+        """Delete a document, its chunks, and the stored file."""
+        import os
+        # Remove stored file from disk
+        file_path = await self.get_file_path(doc_id)
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Removed file {file_path}")
         await self._storage.delete_by_doc_id(doc_id)
         logger.info(f"Deleted document {doc_id}")
         return True
+
+    async def set_file_path(self, doc_id: str, file_path: str) -> None:
+        """Store the file path for a document."""
+        async with self._session_factory() as session:
+            doc = await session.get(Document, doc_id)
+            if doc:
+                doc.file_path = file_path
+                await session.commit()
+
+    async def get_file_path(self, doc_id: str) -> str | None:
+        """Get the stored file path for a document."""
+        async with self._session_factory() as session:
+            doc = await session.get(Document, doc_id)
+            return doc.file_path if doc else None
 
     async def get_stats(self) -> dict:
         """Get knowledge base statistics."""

@@ -1,85 +1,94 @@
-import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Upload, BookOpen, FolderOpen, MessageSquare } from 'lucide-react'
-import { progressApi } from '@/api/progress'
-import { knowledgeApi } from '@/api/knowledge'
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  Trash2,
+  Upload,
+  BookOpen,
+  FolderOpen,
+  MessageSquare,
+} from "lucide-react";
+import { progressApi } from "@/api/progress";
+import { knowledgeApi } from "@/api/knowledge";
 
 interface LearningItem {
-  id: string
-  title: string
-  author: string | null
-  progress: number
-  status: string
-  document_id: string | null
+  id: string;
+  title: string;
+  author: string | null;
+  progress: number;
+  status: string;
+  document_id: string | null;
 }
 
 const ACCEPTED_EXTENSIONS = [
-  '.txt', '.md', '.markdown', '.pdf', '.docx',
-  '.csv', '.xlsx', '.xls', '.ipynb',
-].join(',')
+  ".txt",
+  ".md",
+  ".markdown",
+  ".pdf",
+  ".docx",
+  ".csv",
+  ".xlsx",
+  ".xls",
+  ".ipynb",
+].join(",");
 
 export default function BookshelfPage() {
-  const [items, setItems] = useState<LearningItem[]>([])
-  const [showAdd, setShowAdd] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newAuthor, setNewAuthor] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [highQuality, setHighQuality] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
+  const [items, setItems] = useState<LearningItem[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newAuthor, setNewAuthor] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [highQuality, setHighQuality] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const loadItems = async () => {
-    const data = await progressApi.listItems()
-    setItems(data.items)
-  }
+    const data = await progressApi.listItems();
+    setItems(data.items);
+  };
 
   useEffect(() => {
-    loadItems()
-  }, [])
+    loadItems();
+  }, []);
 
   const handleAdd = async () => {
-    if (!newTitle.trim()) return
-    setUploading(true)
+    if (!newTitle.trim()) return;
+    setUploading(true);
     try {
-      let documentId: string | undefined
+      let documentId: string | undefined;
 
       // Upload file to knowledge base if selected
       if (selectedFile) {
-        const res = await knowledgeApi.uploadFile(selectedFile, highQuality)
-        documentId = (res as { id?: string })?.id
+        const res = await knowledgeApi.uploadFile(selectedFile, highQuality);
+        documentId = (res as { doc_id?: string })?.doc_id;
       }
 
       await progressApi.createItem({
         title: newTitle,
         author: newAuthor || undefined,
         document_id: documentId,
-      })
+      });
 
-      setNewTitle('')
-      setNewAuthor('')
-      setSelectedFile(null)
-      setHighQuality(false)
-      setShowAdd(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      await loadItems()
+      setNewTitle("");
+      setNewAuthor("");
+      setSelectedFile(null);
+      setHighQuality(false);
+      setShowAdd(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      await loadItems();
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    await progressApi.deleteItem(id)
-    await loadItems()
-  }
+    e.stopPropagation();
+    await progressApi.deleteItem(id);
+    await loadItems();
+  };
 
-  const handleProgressChange = async (e: React.MouseEvent, id: string, item: LearningItem) => {
-    e.stopPropagation()
-    // Navigate or handle inline — for now open detail
-  }
-
-  const isPdf = selectedFile?.name.toLowerCase().endsWith('.pdf') ?? false
+  const isPdf = selectedFile?.name.toLowerCase().endsWith(".pdf") ?? false;
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -124,12 +133,13 @@ export default function BookshelfPage() {
                 accept={ACCEPTED_EXTENSIONS}
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null
-                  setSelectedFile(file)
-                  if (file && !file.name.toLowerCase().endsWith('.pdf')) setHighQuality(false)
+                  const file = e.target.files?.[0] ?? null;
+                  setSelectedFile(file);
+                  if (file && !file.name.toLowerCase().endsWith(".pdf"))
+                    setHighQuality(false);
                   // Auto-fill title from filename
                   if (file && !newTitle) {
-                    setNewTitle(file.name.replace(/\.[^.]+$/, ''))
+                    setNewTitle(file.name.replace(/\.[^.]+$/, ""));
                   }
                 }}
               />
@@ -138,7 +148,7 @@ export default function BookshelfPage() {
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <FolderOpen size={16} className="text-gray-500" />
-                {selectedFile ? selectedFile.name : '选择文件（上传到知识库）'}
+                {selectedFile ? selectedFile.name : "选择文件（上传到知识库）"}
               </button>
               {isPdf && (
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -160,14 +170,14 @@ export default function BookshelfPage() {
                 className="flex items-center gap-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 <Upload size={16} />
-                {uploading ? '处理中...' : '添加'}
+                {uploading ? "处理中..." : "添加"}
               </button>
               <button
                 onClick={() => {
-                  setShowAdd(false)
-                  setNewTitle('')
-                  setNewAuthor('')
-                  setSelectedFile(null)
+                  setShowAdd(false);
+                  setNewTitle("");
+                  setNewAuthor("");
+                  setSelectedFile(null);
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -189,16 +199,23 @@ export default function BookshelfPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                onClick={() => navigate(`/chat?book=${item.id}`)}
+                onClick={() => navigate(`/read/${item.id}`)}
                 className="group relative bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer transition-all overflow-hidden"
               >
                 {/* Book cover placeholder */}
                 <div className="aspect-[3/4] bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
                   <div className="text-center">
-                    <BookOpen size={32} className="mx-auto mb-2 text-blue-400" />
-                    <p className="text-sm font-medium text-gray-700 line-clamp-3">{item.title}</p>
+                    <BookOpen
+                      size={32}
+                      className="mx-auto mb-2 text-blue-400"
+                    />
+                    <p className="text-sm font-medium text-gray-700 line-clamp-3">
+                      {item.title}
+                    </p>
                     {item.author && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">{item.author}</p>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                        {item.author}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -206,7 +223,9 @@ export default function BookshelfPage() {
                 {/* Progress bar */}
                 <div className="px-3 py-2">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>{item.status === 'completed' ? '已完成' : '阅读中'}</span>
+                    <span>
+                      {item.status === "completed" ? "已完成" : "阅读中"}
+                    </span>
                     <span>{item.progress}%</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -221,8 +240,8 @@ export default function BookshelfPage() {
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/chat?book=${item.id}`)
+                      e.stopPropagation();
+                      navigate(`/chat?book=${item.id}`);
                     }}
                     className="p-1.5 bg-white/90 rounded-lg shadow-sm hover:bg-blue-50 transition-colors"
                     title="提问"
@@ -243,5 +262,5 @@ export default function BookshelfPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,6 +1,10 @@
 """Knowledge base routes — index, search, documents."""
 
+import os
+from pathlib import Path
+
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
 
 from ...services import KnowledgeService, SearchService
 from ...providers.parser.file_extractor import extract_text, get_file_type, SUPPORTED_EXTENSIONS
@@ -23,6 +27,7 @@ def init_router(
     knowledge_service: KnowledgeService,
     search_service: SearchService,
     anthropic_api_key: str = "",
+    data_dir: str = "data/files",
 ) -> APIRouter:
     """Initialize knowledge router with service instances."""
 
@@ -126,11 +131,29 @@ def init_router(
             source=filename,
             file_type=parser_type,
         )
+
+        # Save original file to disk
+        if result.success:
+            ext = Path(filename).suffix
+            file_dir = Path(data_dir)
+            file_dir.mkdir(parents=True, exist_ok=True)
+            file_path = file_dir / f"{result.doc_id}{ext}"
+            file_path.write_bytes(data)
+            await knowledge_service.set_file_path(result.doc_id, str(file_path))
+
         return IndexResponse(
             success=result.success,
             doc_id=result.doc_id,
             chunks_count=result.chunks_count,
             message=result.message,
         )
+
+    @router.get("/documents/{doc_id}/file")
+    async def get_document_file(doc_id: str):
+        """Serve the original uploaded file."""
+        file_path = await knowledge_service.get_file_path(doc_id)
+        if not file_path or not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="File not found")
+        return FileResponse(file_path)
 
     return router

@@ -1,4 +1,4 @@
-import { request } from '@/service/request'
+import { request, BASE_URL } from '@/service/request'
 
 interface Document {
   id: string
@@ -27,6 +27,8 @@ export const knowledgeApi = {
 
   deleteDocument: (docId: string) =>
     request.delete(`/documents/${docId}`),
+
+  getDocumentFileUrl: (docId: string) => `${BASE_URL}/documents/${docId}/file`,
 
   search: (query: string, topK = 5) =>
     request.post('/search', { query, top_k: topK }),

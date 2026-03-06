@@ -22,6 +22,7 @@ class Document(Base):
     error_message: Mapped[str | None]
     chunk_count: Mapped[int] = mapped_column(default=0)
     file_size: Mapped[int | None]
+    file_path: Mapped[str | None]
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(TZDateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(TZDateTime, server_default=func.now(), onupdate=func.now())
