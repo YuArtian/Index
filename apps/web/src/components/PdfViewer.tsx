@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import {
   PDFViewer,
@@ -12,22 +12,43 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString()
 
-interface Props {
-  url: string
-  initialProgress?: number // 0-100, will be converted to page number
-  onPageChange?: (page: number, totalPages: number) => void
-  onTextSelect?: (text: string) => void
+export interface OutlineItem {
+  title: string
+  dest: unknown
+  items: OutlineItem[]
 }
 
-export default function PdfViewerComponent({
-  url,
-  initialProgress = 0,
-  onPageChange,
-  onTextSelect,
-}: Props) {
+export interface PdfViewerHandle {
+  goToDestination: (dest: unknown) => void
+  goToPage: (page: number) => void
+}
+
+interface Props {
+  url: string
+  initialProgress?: number
+  onPageChange?: (page: number, totalPages: number) => void
+  onTextSelect?: (text: string) => void
+  onOutlineLoaded?: (outline: OutlineItem[]) => void
+}
+
+const PdfViewerComponent = forwardRef<PdfViewerHandle, Props>(function PdfViewerComponent(
+  { url, initialProgress = 0, onPageChange, onTextSelect, onOutlineLoaded },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PDFViewer | null>(null)
-  const eventBusRef = useRef<EventBus | null>(null)
+  const linkServiceRef = useRef<PDFLinkService | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    goToDestination(dest: unknown) {
+      linkServiceRef.current?.goToDestination(dest as string | unknown[])
+    },
+    goToPage(page: number) {
+      if (viewerRef.current) {
+        viewerRef.current.currentPageNumber = page
+      }
+    },
+  }))
 
   // Text selection handler
   const handleMouseUp = useCallback(() => {
@@ -43,9 +64,9 @@ export default function PdfViewerComponent({
 
     const container = containerRef.current
     const eventBus = new EventBus()
-    eventBusRef.current = eventBus
 
     const linkService = new PDFLinkService({ eventBus })
+    linkServiceRef.current = linkService
     const viewer = new PDFViewer({
       container,
       eventBus,
@@ -68,6 +89,13 @@ export default function PdfViewerComponent({
     loadTask.promise.then((doc) => {
       viewer.setDocument(doc)
       linkService.setDocument(doc)
+
+      // Extract outline
+      doc.getOutline().then((outline) => {
+        if (outline && onOutlineLoaded) {
+          onOutlineLoaded(outline as OutlineItem[])
+        }
+      })
 
       // Jump to saved progress after pages are ready
       if (initialProgress > 0) {
@@ -106,4 +134,6 @@ export default function PdfViewerComponent({
       <div className="pdfViewer" />
     </div>
   )
-}
+})
+
+export default PdfViewerComponent
