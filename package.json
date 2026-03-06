@@ -1,0 +1,23 @@
+{
+  "name": "index",
+  "version": "1.0.0",
+  "description": "RAG 知识库 + Claude Chat + 学习进度追踪。",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YuArtian/Index.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/YuArtian/Index/issues"
+  },
+  "homepage": "https://github.com/YuArtian/Index#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.3.5"
+  }
+}

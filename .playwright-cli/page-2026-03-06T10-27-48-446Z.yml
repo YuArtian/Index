@@ -1,0 +1,24 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "Index" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 学习助手
+    - navigation [ref=e8]:
+      - link "书架" [ref=e9] [cursor=pointer]:
+        - /url: /
+        - img [ref=e10]
+        - text: 书架
+      - link "对话" [ref=e12] [cursor=pointer]:
+        - /url: /chat
+        - img [ref=e13]
+        - text: 对话
+      - link "知识库" [ref=e15] [cursor=pointer]:
+        - /url: /knowledge
+        - img [ref=e16]
+        - text: 知识库
+      - link "阅读进度" [ref=e18] [cursor=pointer]:
+        - /url: /progress
+        - img [ref=e19]
+        - text: 阅读进度
+  - main [ref=e21]:
+    - generic [ref=e22]: 加载中...

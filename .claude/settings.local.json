@@ -33,7 +33,9 @@
       "Bash(gh release list --repo nicolo-ribaudo/pdfjs-dist --limit 5)",
       "Bash(curl -L -o /tmp/pdfjs.zip \"https://github.com/nicolo-ribaudo/pdfjs-dist/releases/download/v5.5.207/pdfjs-5.5.207-dist.zip\")",
       "Bash(git checkout -- apps/web/src/components/PdfViewer.tsx apps/web/src/pages/Reader.tsx apps/web/src/api/progress.ts)",
-      "Bash(rm -rf apps/web/public/pdfjs /tmp/pdfjs.zip)"
+      "Bash(rm -rf apps/web/public/pdfjs /tmp/pdfjs.zip)",
+      "Skill(playwright-cli)",
+      "Skill(playwright-cli:*)"
     ]
   }
 }
