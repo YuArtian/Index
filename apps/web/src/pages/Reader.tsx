@@ -2,18 +2,8 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, MessageSquare, Loader2 } from 'lucide-react'
 import { knowledgeApi } from '@/api/knowledge'
-import { progressApi } from '@/api/progress'
+import { progressApi, type LearningItem } from '@/api/progress'
 import PdfViewer from '@/components/PdfViewer'
-
-interface LearningItem {
-  id: string
-  title: string
-  author: string | null
-  progress: number
-  status: string
-  document_id: string | null
-  filename: string | null
-}
 
 function isPdf(filename: string | null) {
   return filename?.toLowerCase().endsWith('.pdf') ?? false
