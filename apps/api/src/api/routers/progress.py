@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from ...services import ProgressService
+from ...services import ProgressService, KnowledgeService
 
 router = APIRouter(prefix="/progress", tags=["Progress"])
 
@@ -23,7 +23,7 @@ class UpdateItemRequest(BaseModel):
     notes: str | None = None
 
 
-def init_router(progress_service: ProgressService) -> APIRouter:
+def init_router(progress_service: ProgressService, knowledge_service: KnowledgeService | None = None) -> APIRouter:
     """Initialize progress router with service instance."""
 
     @router.post("")
@@ -78,6 +78,7 @@ def init_router(progress_service: ProgressService) -> APIRouter:
             "status": item.status,
             "notes": item.notes,
             "document_id": item.document_id,
+            "filename": item.document.filename if item.document else None,
             "updated_at": item.updated_at.isoformat() if item.updated_at else None,
         }
 
@@ -98,10 +99,12 @@ def init_router(progress_service: ProgressService) -> APIRouter:
 
     @router.delete("/{item_id}")
     async def delete_item(item_id: str):
-        """Delete a learning item."""
-        success = await progress_service.delete_item(item_id)
-        if not success:
+        """Delete a learning item and its associated document + file."""
+        document_id = await progress_service.delete_item(item_id)
+        if document_id is None:
             raise HTTPException(status_code=404, detail="Item not found")
+        if document_id and knowledge_service:
+            await knowledge_service.delete_document(document_id)
         return {"success": True, "message": f"Deleted item {item_id}"}
 
     return router

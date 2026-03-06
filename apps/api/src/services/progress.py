@@ -78,12 +78,13 @@ class ProgressService:
             await session.refresh(item)
             return item
 
-    async def delete_item(self, item_id: str) -> bool:
-        """Delete a learning item."""
+    async def delete_item(self, item_id: str) -> str | None:
+        """Delete a learning item. Returns document_id if linked, None if not found."""
         async with self._session_factory() as session:
             item = await session.get(LearningItem, item_id)
             if not item:
-                return False
+                return None
+            document_id = item.document_id
             await session.delete(item)
             await session.commit()
-            return True
+            return document_id or ""

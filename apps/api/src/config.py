@@ -5,7 +5,12 @@ Environment variables are loaded from .env at project root.
 Nested settings use double underscore delimiter: DATABASE__URL, EMBEDDING__API_KEY, etc.
 """
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Project root: Index/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 class DatabaseSettings(BaseSettings):
@@ -26,6 +31,7 @@ class Settings(BaseSettings):
     chunk_size: int = 500
     chunk_overlap: int = 50
     cors_origins: list[str] = ["http://localhost:5173"]
+    data_dir: str = str(PROJECT_ROOT / "data" / "files")
 
     model_config = {"env_file": "../../.env", "env_nested_delimiter": "__"}
 

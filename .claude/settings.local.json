@@ -16,7 +16,18 @@
       "Bash(xargs kill -9)",
       "Bash(.venv/bin/pip install sentence-transformers -q)",
       "Bash(source .venv/bin/activate)",
-      "Bash(pip install pymupdf --quiet)"
+      "Bash(pip install pymupdf --quiet)",
+      "Bash(PGPASSWORD=postgres psql -h localhost -U postgres -d index -c \"SELECT id, filename, file_path, status FROM documents ORDER BY created_at DESC LIMIT 5;\")",
+      "Bash(python -c \"from src.config import settings; print\\(settings.data_dir\\)\")",
+      "Bash(python3 -c \"import sys,json; paths=json.load\\(sys.stdin\\)[''paths'']; [print\\(p\\) for p in sorted\\(paths\\) if ''content'' in p]\")",
+      "Bash(pnpm add pdfjs-dist)",
+      "Bash(pnpm add pdfjs-dist --store-dir /Users/admin/xyz/Index/.pnpm-store/v3)",
+      "Bash(node -e \"const p = require\\(''pdfjs-dist/package.json''\\); console.log\\(p.version\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(node --input-type=module -e \":*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(npx vite build)"
     ]
   }
 }
