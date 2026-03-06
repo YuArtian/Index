@@ -1,6 +1,6 @@
 import { request } from '@/service/request'
 
-interface LearningItem {
+export interface LearningItem {
   id: string
   title: string
   author: string | null
@@ -8,6 +8,7 @@ interface LearningItem {
   progress: number
   status: string
   document_id: string | null
+  filename: string | null
   updated_at: string | null
 }
 
