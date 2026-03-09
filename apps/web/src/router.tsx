@@ -7,6 +7,7 @@ const Reader = lazy(() => import("./pages/Reader"));
 const Chat = lazy(() => import("./pages/Chat"));
 const Knowledge = lazy(() => import("./pages/Knowledge"));
 const Progress = lazy(() => import("./pages/Progress"));
+const Graph = lazy(() => import("./pages/Graph"));
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
       { path: "/chat", element: <Chat /> },
       { path: "/knowledge", element: <Knowledge /> },
       { path: "/progress", element: <Progress /> },
+      { path: "/graph", element: <Graph /> },
     ],
   },
 ]);

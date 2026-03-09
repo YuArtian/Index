@@ -53,7 +53,12 @@
       "Bash(pip install neo4j)",
       "Bash(timeout 10 python -c \":*)",
       "Bash(timeout 15 python -c \":*)",
-      "Bash(timeout 8 python -c \":*)"
+      "Bash(timeout 8 python -c \":*)",
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(pnpm add react-force-graph-2d)",
+      "Bash(kill %1)",
+      "Bash(rm -rf node_modules)",
+      "Bash(pnpm install --no-frozen-lockfile)"
     ]
   }
 }

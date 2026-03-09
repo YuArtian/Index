@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { MessageSquare, BookOpen, Library, Bookmark } from 'lucide-react'
+import { MessageSquare, BookOpen, Library, Bookmark, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/chat', icon: MessageSquare, label: '对话' },
   { to: '/knowledge', icon: Library, label: '知识库' },
   { to: '/progress', icon: Bookmark, label: '阅读进度' },
+  { to: '/graph', icon: Share2, label: '知识图谱' },
 ]
 
 export function Sidebar() {
