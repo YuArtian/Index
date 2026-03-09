@@ -23,7 +23,7 @@ kill_port $WEB_PORT "Web"
 
 # Start API
 echo "[API] Starting on port $API_PORT..."
-cd "$PROJECT_DIR/apps/api" && python main.py &
+cd "$PROJECT_DIR/apps/api" && source .venv/bin/activate && python main.py &
 API_PID=$!
 
 # Start Web

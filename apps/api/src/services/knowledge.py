@@ -14,6 +14,7 @@ from ..models.document import Document
 from ..providers.embedding import EmbeddingProvider
 from ..providers.storage import StorageProvider
 from ..providers.parser import create_parser
+from .graph import GraphService
 
 
 @dataclass
@@ -34,12 +35,14 @@ class KnowledgeService:
         session_factory: async_sessionmaker,
         default_chunk_size: int = 500,
         default_chunk_overlap: int = 50,
+        graph_service: GraphService | None = None,
     ):
         self._embedding = embedding_provider
         self._storage = storage_provider
         self._session_factory = session_factory
         self._chunk_size = default_chunk_size
         self._chunk_overlap = default_chunk_overlap
+        self._graph = graph_service
 
     async def index_document(
         self,
@@ -118,6 +121,17 @@ class KnowledgeService:
                 doc.chunk_count = len(parsed.chunks)
                 await session.commit()
 
+            # Extract concepts to knowledge graph
+            if self._graph:
+                try:
+                    await self._graph.extract_and_save(
+                        chunks=chunk_contents,
+                        doc_id=doc_id,
+                        chunk_ids=ids,
+                    )
+                except Exception as e:
+                    logger.warning(f"Concept extraction failed for {doc_id}: {e}")
+
             logger.info(f"Indexed document {doc_id}: {len(parsed.chunks)} chunks from {source}")
 
             return IndexResult(
@@ -155,6 +169,11 @@ class KnowledgeService:
             os.remove(file_path)
             logger.info(f"Removed file {file_path}")
         await self._storage.delete_by_doc_id(doc_id)
+        if self._graph:
+            try:
+                await self._graph.delete_document_concepts(doc_id)
+            except Exception as e:
+                logger.warning(f"Failed to clean graph for {doc_id}: {e}")
         logger.info(f"Deleted document {doc_id}")
         return True
 

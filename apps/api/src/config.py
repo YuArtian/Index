@@ -24,9 +24,16 @@ class EmbeddingSettings(BaseSettings):
     model: str = "voyage-3.5"
 
 
+class Neo4jSettings(BaseSettings):
+    uri: str = "bolt://localhost:7687"
+    user: str = "neo4j"
+    password: str = "neo4j_password"
+
+
 class Settings(BaseSettings):
     database: DatabaseSettings = DatabaseSettings()
     embedding: EmbeddingSettings = EmbeddingSettings()
+    neo4j: Neo4jSettings = Neo4jSettings()
     anthropic_api_key: str = ""
     chunk_size: int = 500
     chunk_overlap: int = 50

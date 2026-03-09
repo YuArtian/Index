@@ -35,7 +35,25 @@
       "Bash(git checkout -- apps/web/src/components/PdfViewer.tsx apps/web/src/pages/Reader.tsx apps/web/src/api/progress.ts)",
       "Bash(rm -rf apps/web/public/pdfjs /tmp/pdfjs.zip)",
       "Skill(playwright-cli)",
-      "Skill(playwright-cli:*)"
+      "Skill(playwright-cli:*)",
+      "Bash(xargs cat)",
+      "Bash(PGPASSWORD=postgres psql -h localhost -U postgres -d index -c \"SELECT id, title, author, status, progress, document_id, created_at FROM learning_items ORDER BY created_at DESC;\")",
+      "Bash(curl -s http://localhost:8000/progress)",
+      "Bash(curl -sv http://localhost:8000/progress)",
+      "Bash(grep -E \"^/Users/admin/xyz/TheCenterLibrary/[^/]+/[^/]+\\\\.md$\")",
+      "Bash(done)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(docker compose up -d neo4j)",
+      "Bash(docker compose ps neo4j)",
+      "Bash(docker compose ps)",
+      "Bash(docker system df)",
+      "Bash(docker builder prune -f)",
+      "Bash(docker exec index-neo4j-1 cypher-shell -u neo4j -p neo4j_password \"RETURN ''Neo4j is ready!'' AS status\")",
+      "Bash(pip install neo4j)",
+      "Bash(timeout 10 python -c \":*)",
+      "Bash(timeout 15 python -c \":*)",
+      "Bash(timeout 8 python -c \":*)"
     ]
   }
 }

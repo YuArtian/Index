@@ -18,6 +18,8 @@ dependencies = [
     "loguru>=0.7.0",
     # AI
     "anthropic>=0.40.0",
+    # Graph database
+    "neo4j>=5.0.0",
     # File upload + parsers
     "python-multipart>=0.0.9",
     "pypdf>=4.0.0",
