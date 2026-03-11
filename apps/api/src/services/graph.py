@@ -102,48 +102,57 @@ class GraphService:
     async def save_concepts(
         self, extraction: ExtractionResult, doc_id: str, chunk_ids: list[str]
     ):
-        """Save extracted concepts and relations to Neo4j."""
+        """Save extracted concepts and relations to Neo4j using batch UNWIND."""
+        if not extraction.concepts and not extraction.relations:
+            return
+
         async with self._driver.session() as session:
-            # Merge concepts (create if not exist, update if exist)
-            for concept in extraction.concepts:
+            # Batch merge concepts in one query
+            if extraction.concepts:
+                concept_data = [
+                    {"name": c.name, "category": c.category, "description": c.description}
+                    for c in extraction.concepts
+                ]
                 await session.run(
                     """
-                    MERGE (c:Concept {name: $name})
-                    ON CREATE SET c.category = $category,
-                                  c.description = $description,
-                                  c.created_at = datetime()
-                    ON MATCH SET c.description = CASE
-                        WHEN size(c.description) < size($description) THEN $description
-                        ELSE c.description
+                    UNWIND $concepts AS c
+                    MERGE (n:Concept {name: c.name})
+                    ON CREATE SET n.category = c.category,
+                                  n.description = c.description,
+                                  n.created_at = datetime()
+                    ON MATCH SET n.description = CASE
+                        WHEN size(n.description) < size(c.description) THEN c.description
+                        ELSE n.description
                     END
                     """,
-                    name=concept.name,
-                    category=concept.category,
-                    description=concept.description,
+                    concepts=concept_data,
                 )
 
-            # Merge relations (create or increase weight)
-            for rel in extraction.relations:
+            # Batch merge relations in one query
+            if extraction.relations:
+                rel_data = [
+                    {"source": r.source, "target": r.target, "relation": r.relation}
+                    for r in extraction.relations
+                ]
                 await session.run(
                     """
-                    MATCH (a:Concept {name: $source})
-                    MATCH (b:Concept {name: $target})
-                    MERGE (a)-[r:RELATES_TO {type: $relation}]->(b)
-                    ON CREATE SET r.weight = 1,
-                                  r.doc_ids = [$doc_id],
-                                  r.chunk_ids = $chunk_ids,
-                                  r.created_at = datetime()
-                    ON MATCH SET r.weight = r.weight + 1,
-                                 r.doc_ids = CASE
-                                     WHEN NOT $doc_id IN r.doc_ids
-                                     THEN r.doc_ids + $doc_id
-                                     ELSE r.doc_ids
+                    UNWIND $rels AS r
+                    MATCH (a:Concept {name: r.source})
+                    MATCH (b:Concept {name: r.target})
+                    MERGE (a)-[rel:RELATES_TO {type: r.relation}]->(b)
+                    ON CREATE SET rel.weight = 1,
+                                  rel.doc_ids = [$doc_id],
+                                  rel.chunk_ids = $chunk_ids,
+                                  rel.created_at = datetime()
+                    ON MATCH SET rel.weight = rel.weight + 1,
+                                 rel.doc_ids = CASE
+                                     WHEN NOT $doc_id IN rel.doc_ids
+                                     THEN rel.doc_ids + $doc_id
+                                     ELSE rel.doc_ids
                                  END,
-                                 r.chunk_ids = r.chunk_ids + $chunk_ids
+                                 rel.chunk_ids = rel.chunk_ids + $chunk_ids
                     """,
-                    source=rel.source,
-                    target=rel.target,
-                    relation=rel.relation,
+                    rels=rel_data,
                     doc_id=doc_id,
                     chunk_ids=chunk_ids,
                 )
@@ -158,12 +167,13 @@ class GraphService:
     ):
         """Extract concepts from all chunks and save to graph.
 
-        Batches chunks together to reduce API calls.
+        Batches chunks into large groups (~30k chars) to minimize API calls.
+        A 300-chunk book now triggers ~3 calls instead of ~50.
         """
-        # Combine chunks into batches (~2000 chars each) to reduce API calls
         batch_text = ""
         batch_chunk_ids: list[str] = []
-        batch_size = 3000
+        # 30k chars ≈ ~8k tokens → well within Claude's context window
+        batch_size = 30000
 
         for i, chunk in enumerate(chunks):
             batch_text += chunk + "\n\n"
@@ -175,6 +185,8 @@ class GraphService:
                     await self.save_concepts(extraction, doc_id, batch_chunk_ids)
                 batch_text = ""
                 batch_chunk_ids = []
+
+        logger.info(f"Graph extraction completed for doc {doc_id}")
 
     # ------------------------------------------------------------------
     # Graph read operations

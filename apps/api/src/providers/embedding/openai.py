@@ -67,8 +67,10 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         embeddings = await self._call_api([text.strip()])
         return embeddings[0]
 
-    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings for multiple texts."""
+    async def embed_batch(
+        self, texts: list[str], batch_size: int = 128
+    ) -> list[list[float]]:
+        """Generate embeddings for multiple texts, batched to avoid API limits."""
         if not texts:
             return []
 
@@ -76,7 +78,17 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         if not valid_texts:
             return []
 
-        return await self._call_api(valid_texts)
+        # Single batch — fast path
+        if len(valid_texts) <= batch_size:
+            return await self._call_api(valid_texts)
+
+        # Split into batches to stay within API per-request limits
+        all_embeddings: list[list[float]] = []
+        for i in range(0, len(valid_texts), batch_size):
+            batch = valid_texts[i : i + batch_size]
+            embeddings = await self._call_api(batch)
+            all_embeddings.extend(embeddings)
+        return all_embeddings
 
     async def _call_api(self, texts: list[str]) -> list[list[float]]:
         """Call the embedding API."""

@@ -2,8 +2,10 @@
 Knowledge service - handles document indexing and management.
 
 Updated: storage calls are now async, documents table tracks processing status.
+Graph extraction runs as a background task to avoid blocking the upload endpoint.
 """
 
+import asyncio
 import uuid
 from dataclasses import dataclass
 
@@ -43,6 +45,7 @@ class KnowledgeService:
         self._chunk_size = default_chunk_size
         self._chunk_overlap = default_chunk_overlap
         self._graph = graph_service
+        self._bg_tasks: set[asyncio.Task] = set()
 
     async def index_document(
         self,
@@ -51,7 +54,10 @@ class KnowledgeService:
         metadata: dict | None = None,
         file_type: str = "text",
     ) -> IndexResult:
-        """Index a document: parse → embed → store in pgvector."""
+        """Index a document: parse → embed → store in pgvector.
+
+        Graph extraction runs in the background and does not block the response.
+        """
         doc_id = str(uuid.uuid4())
 
         # Create document record
@@ -114,23 +120,20 @@ class KnowledgeService:
                 metadatas=metadatas,
             )
 
-            # Mark as ready
+            # Mark as ready (search is available now)
             async with self._session_factory() as session:
                 doc = await session.get(Document, doc_id)
                 doc.status = "ready"
                 doc.chunk_count = len(parsed.chunks)
                 await session.commit()
 
-            # Extract concepts to knowledge graph
+            # Fire-and-forget: extract concepts to knowledge graph in background
             if self._graph:
-                try:
-                    await self._graph.extract_and_save(
-                        chunks=chunk_contents,
-                        doc_id=doc_id,
-                        chunk_ids=ids,
-                    )
-                except Exception as e:
-                    logger.warning(f"Concept extraction failed for {doc_id}: {e}")
+                task = asyncio.create_task(
+                    self._extract_graph_background(chunk_contents, doc_id, ids)
+                )
+                self._bg_tasks.add(task)
+                task.add_done_callback(self._bg_tasks.discard)
 
             logger.info(f"Indexed document {doc_id}: {len(parsed.chunks)} chunks from {source}")
 
@@ -150,6 +153,16 @@ class KnowledgeService:
                     await session.commit()
             logger.error(f"Failed to index document {doc_id}: {e}")
             raise
+
+    async def _extract_graph_background(
+        self, chunks: list[str], doc_id: str, chunk_ids: list[str]
+    ):
+        """Background task for graph extraction. Failures are logged, not raised."""
+        try:
+            await self._graph.extract_and_save(chunks, doc_id, chunk_ids)
+            logger.info(f"Graph extraction completed for {doc_id}")
+        except Exception as e:
+            logger.warning(f"Graph extraction failed for {doc_id}: {e}")
 
     async def list_documents(self) -> list[Document]:
         """List all documents from the documents table."""

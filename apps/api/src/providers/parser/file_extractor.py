@@ -123,8 +123,14 @@ def _pdf(data: bytes) -> str:
         raise RuntimeError(f"PDF 解析失败: {e}") from e
 
 
-async def _pdf_vision(data: bytes, api_key: str, max_pages: int = 50) -> str:
-    """Render each PDF page to PNG and extract content via Claude Vision."""
+async def _pdf_vision(
+    data: bytes, api_key: str, max_pages: int = 50, concurrency: int = 5
+) -> str:
+    """Render each PDF page to PNG and extract content via Claude Vision.
+
+    Uses a semaphore to process up to `concurrency` pages in parallel.
+    """
+    import asyncio
     import base64
     import anthropic
 
@@ -138,44 +144,48 @@ async def _pdf_vision(data: bytes, api_key: str, max_pages: int = 50) -> str:
     pages_to_process = min(total_pages, max_pages)
 
     client = anthropic.AsyncAnthropic(api_key=api_key)
-    parts: list[str] = []
+    sem = asyncio.Semaphore(concurrency)
 
-    for i in range(pages_to_process):
+    async def _extract_page(i: int) -> str:
         page = doc[i]
-        # 2x zoom for sharper text recognition
         mat = fitz.Matrix(2, 2)
         pix = page.get_pixmap(matrix=mat)
         img_data = pix.tobytes("png")
 
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2000,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": base64.standard_b64encode(img_data).decode(),
+        async with sem:
+            response = await client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=2000,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": base64.standard_b64encode(img_data).decode(),
+                            },
                         },
-                    },
-                    {
-                        "type": "text",
-                        "text": (
-                            f"这是 PDF 第 {i + 1}/{total_pages} 页。"
-                            "请提取页面中的所有内容：正文、标题、数学公式（用 LaTeX 格式表示）、"
-                            "代码块（保留缩进）、表格（用 Markdown 格式）。"
-                            "忽略页眉、页脚、页码。直接输出内容，不要添加解释。"
-                        ),
-                    },
-                ],
-            }],
-        )
-        parts.append(response.content[0].text)
+                        {
+                            "type": "text",
+                            "text": (
+                                f"这是 PDF 第 {i + 1}/{total_pages} 页。"
+                                "请提取页面中的所有内容：正文、标题、数学公式（用 LaTeX 格式表示）、"
+                                "代码块（保留缩进）、表格（用 Markdown 格式）。"
+                                "忽略页眉、页脚、页码。直接输出内容，不要添加解释。"
+                            ),
+                        },
+                    ],
+                }],
+            )
+        return response.content[0].text
+
+    # Process pages concurrently (order preserved by gather)
+    parts = await asyncio.gather(*[_extract_page(i) for i in range(pages_to_process)])
 
     if total_pages > max_pages:
+        parts = list(parts)
         parts.append(f"\n[文档共 {total_pages} 页，高质量模式已处理前 {max_pages} 页]")
 
     return "\n\n---\n\n".join(parts)
