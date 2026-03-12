@@ -13,6 +13,7 @@ from loguru import logger
 
 from ..config import settings
 from ..database import async_session, init_db, close_db
+from ..logging import setup_logging
 from ..providers.embedding import create_embedding_provider
 from ..providers.storage import create_storage_provider
 from ..services import KnowledgeService, SearchService, ChatService, ProgressService, GraphService
@@ -22,6 +23,14 @@ from .routers import knowledge, chat, conversations, progress, graph
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage startup and shutdown."""
+    # Logging (must be first)
+    setup_logging(
+        level=settings.log.level,
+        log_dir=settings.log.dir,
+        rotation=settings.log.rotation,
+        retention=settings.log.retention,
+    )
+
     # Startup
     await init_db()
     logger.info("Database connected")

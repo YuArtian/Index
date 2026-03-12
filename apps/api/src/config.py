@@ -30,10 +30,18 @@ class Neo4jSettings(BaseSettings):
     password: str = "neo4j_password"
 
 
+class LogSettings(BaseSettings):
+    level: str = "INFO"
+    dir: str = str(PROJECT_ROOT / "logs")
+    rotation: str = "10 MB"
+    retention: str = "7 days"
+
+
 class Settings(BaseSettings):
     database: DatabaseSettings = DatabaseSettings()
     embedding: EmbeddingSettings = EmbeddingSettings()
     neo4j: Neo4jSettings = Neo4jSettings()
+    log: LogSettings = LogSettings()
     anthropic_api_key: str = ""
     chunk_size: int = 500
     chunk_overlap: int = 50
